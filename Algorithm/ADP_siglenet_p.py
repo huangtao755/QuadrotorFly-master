@@ -68,11 +68,12 @@ Fre_V1_paras = 5
 ############################################################################################################
 
 class Model(t.nn.Module):
-    def __init__(self, input_dim, output_dim):
+    def __init__(self, input_dim, output_dim, name=None):
         super(Model, self).__init__()
-        self.lay1 = t.nn.Linear(input_dim, 10, bias=False)
+        self.name = name
+        self.lay1 = t.nn.Linear(input_dim, 16, bias=False)
         self.lay1.weight.data.normal_(0, 0.5)
-        self.lay2 = t.nn.Linear(10, output_dim, bias=False)
+        self.lay2 = t.nn.Linear(16, output_dim, bias=False)
         self.lay2.weight.data.normal_(0, 0.5)
 
     def forward(self, x):
@@ -80,6 +81,9 @@ class Model(t.nn.Module):
         layer1 = t.nn.functional.relu(layer1)
         output = self.lay2(layer1)
         return output
+
+    def save_all_net(self, name=None, path='', num=None):
+        print('')
 
 
 ############################################################################################################
