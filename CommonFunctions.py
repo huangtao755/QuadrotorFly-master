@@ -86,7 +86,6 @@ def get_rotation_inv_matrix(att):
 
     return rotation_matrix
 
-
 if __name__ == '__main__':
     try:
         raise QuadrotorFlyError('Quadrotor Exception Test')

@@ -68,12 +68,12 @@ Fre_V1_paras = 5
 
 
 class Model(t.nn.Module):
-    def __init__(self):
+    def __init__(self, input_dim, output_dim):
         super(Model, self).__init__()
-        self.lay1 = t.nn.Linear(state_dim, 10, bias=False)
+        self.lay1 = t.nn.Linear(input_dim, 10, bias=False)
         self.lay1.weight.data.normal_(0, 0.5)
-        self.lay2 = t.nn.Linear(10, 1, bais=False)
-        self.lay2.weight.date.normal_(0, 0.5)
+        self.lay2 = t.nn.Linear(10, output_dim, bais=False)
+        self.lay2.weight.data.normal_(0, 0.5)
 
     def forward(self, x):
         layer1 = self.lay1(x)
@@ -83,16 +83,58 @@ class Model(t.nn.Module):
 
 
 class ADP_s():
-    def __init__(self, evn, state_dim):
-        self.evn = evn
+    def __init__(self, evn):
+        """
 
-        self.V1_model = Model()
-        self.V2_model = Model()
+        """
+        'init evn'
+        self.evn = evn()
+
+        self.state_dim = evn.state_dim
+        self.state = np.zeros(state_dim)
+        self.action_dim = evn.action_dim
+        self.action = np.zeros(action_dim)
+        self.gx = evn.gx
+
+        'reward parameter'
+        self.Q = t.tensor(evn.Q)
+        self.R = t.tensor(evn.R)
+
+        'init critic net'
+        self.critic_eval = Model(input_dim=self.state_dim, output_dim=1)
+        self.critic_target = Model(input_dim=self.state_dim, output_dim=1)
         self.Criterion = t.nn.MSELoss(reduction='mean')
+        self.optimizerV2 = t.optim.SGD(self.critic_eval.parameters(), lr=learning_rate)
 
-        self.optimizerV2 = t.optim.SGD(self.V2_model.parameters(), lr=learning_rate)
+    def choose_action(self, state):
+        """
 
-        self.state = None
-        self.state_dim = state_dim
+        """
+        "Step one: calculate the gradient of the critic net"
+        state = t.tensor(state, requires_grad=True)
+        critic_value = self.critic_eval(state)
+        critic_value.backward()
+        critic_grad = state.grad
+        "Step one: calculate the gradient of the critic net"
 
-        self.action = 0
+        "Step two: calculate the action according to the HJB function and system dynamic function"
+        value = t.mm(self.R, self.gx)
+        action = t.mm(va)
+        "Step two: calculate the action according to the HJB function and system dynamic function"
+
+    def learn(self, replay_buffer):
+        """
+
+        """
+        for train_index in range(learning_num):
+            "Step one; get data"
+            state, action, reward, state_new, done = self.memory_buffer()
+            state = t.tensor(state, dtype=t.float)
+            action = t.tensor(action, dtype=t.float)
+            reward = t.tensor(reward, dtype=t.float)
+            state_new = t.tensor(state_new, dtype=t.float)
+            "Step one; get data"
+
+            "Step two: calculate critic value"
+
+            "Step two: calculate critic value"

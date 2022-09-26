@@ -102,7 +102,7 @@ class QuadParas(object):
         uav:
             -uav_l      : m,        distance from center of mass to center of rotor
             -uav_m      : kg,       the mass of quadrotor
-            -uav_ixx    : kg.m^2    central principal moments of inertia of UAV in x
+            -uav_ixx    : kg.m^2    central principal moments of inertia of UAV in x（惯性矩）
             -uav_iyy    : kg.m^2    central principal moments of inertia of UAV in y
             -uav_izz    : kg.m^2    central principal moments of inertia of UAV in z
         rotor (assume that four rotors are the same):
@@ -490,7 +490,8 @@ class QuadModel(object):
 
         return ob, reward, finish_flag
 
-    def get_controller_pid(self, state, ref_state=np.array([0, 0, 1, 0])):
+    def get_controller_pid(self, state, err_pos_i=np.array([0, 0, 0]),
+                           ref_state=np.array([0, 0, 1, 0])):
         """ pid controller
         :param state: system state, 12
         :param ref_state: reference value for x, y, z, yaw
@@ -498,6 +499,7 @@ class QuadModel(object):
         """
 
         # position-velocity cycle, velocity cycle is regard as kd
+        ki_pos = np.array([0.0, 0.0, 0.0])
         kp_pos = np.array([0.3, 0.3, 0.8])
         kp_vel = np.array([0.15, 0.15, 0.5])
         # decoupling about x-y
@@ -506,7 +508,7 @@ class QuadModel(object):
         # de_phy = np.array([[np.cos(phy), np.sin(phy)], [np.sin(phy), -np.cos(phy)]])
         de_phy = np.array([[np.cos(phy), -np.sin(phy)], [np.sin(phy), np.cos(phy)]])
         err_pos = ref_state[0:3] - np.array([state[0], state[1], state[2]])
-        ref_vel = err_pos * kp_pos
+        ref_vel = err_pos * kp_pos  # + err_pos_i * ki_pos
         err_vel = ref_vel - np.array([state[3], state[4], state[5]])
         # calculate ref without decoupling about phy
         # ref_angle = kp_vel * err_vel
@@ -515,7 +517,7 @@ class QuadModel(object):
         ref_angle[0:2] = np.matmul(de_phy, kp_vel[0] * err_vel[0:2])
 
         # attitude-angular cycle, angular cycle is regard as kd
-        kp_angle = np.array([1.0, 1.0, 0.8])
+        kp_angle = np.array([1, 1, 0.8])
         kp_angular = np.array([0.2, 0.2, 0.2])
         # ref_angle = np.zeros(3)
         err_angle = np.array([-ref_angle[1], ref_angle[0], ref_state[3]]) - np.array([state[6], state[7], state[8]])
@@ -526,7 +528,9 @@ class QuadModel(object):
         # the control value in z direction needs to be modify considering gravity
         err_altitude = (ref_state[2] - state[2]) * 0.5
         con_altitude = (err_altitude - state[5]) * 0.25
-        oil_altitude = 0.6 + con_altitude
+        print(con_altitude)
+        oil_altitude = 0.634195 + con_altitude
+        # oil_altitude = 0.6 + con_altitude
         if oil_altitude > 0.75:
             oil_altitude = 0.75
 
@@ -592,7 +596,7 @@ if __name__ == '__main__':
         record.clear()
         step_cnt = 0
         for i in range(3000):
-            ref = np.array([0., 3., 0., 0.])
+            ref = np.array([0., 3., 0., 0.5])
             stateTemp = quad1.observe()
             action2, oil = quad1.get_controller_pid(stateTemp, ref)
             print('action: ', action2)

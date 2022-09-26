@@ -115,23 +115,30 @@ class QuadrotorFlyGuiUav(object):
             pos = self.ax.text2D(0.02, 0.87 - 0.03 * index, 'pos_%d/m:' % index + str([0, 0, 0]),
                                  transform=self.ax.transAxes,
                                  fontsize='11')
+            attu = self.ax.text2D(0.02, 0.84 - 0.03 * index, 'pos_%d/m:' % index + str([0, 0, 0]),
+                                  transform=self.ax.transAxes,
+                                  fontsize='11')
+
             print(target_point, '////target_point')
             index += 1
             if quad_temp.uavPara.structureType == Qfm.StructureType.quad_plus:
                 bar_x, = self.ax.plot([], [], [], color='red', linewidth=4, antialiased=False)
                 hub, = self.ax.plot([], [], [], marker='o', color='blue', markersize=8, antialiased=False)
                 bar_y, = self.ax.plot([], [], [], color='black', linewidth=4, antialiased=False)
-                self.quadGui.append({'pos': pos, 'hub': hub, 'barX': bar_x, 'barY': bar_y, 'label': label,
-                                     'target_point': target_point})
+                head_x, = self.ax.plot([], [], [], marker='o', color='green', markersize=6, antialiased=False)
+                self.quadGui.append({'pos': pos, 'attu': attu, 'hub': hub, 'barX': bar_x, 'barY': bar_y, 'label': label,
+                                     'target_point': target_point, 'head_x': head_x})
             elif quad_temp.uavPara.structureType == Qfm.StructureType.quad_x:
                 front_bar1, = self.ax.plot([], [], [], color='red', linewidth=4, antialiased=False)
                 front_bar2, = self.ax.plot([], [], [], color='red', linewidth=4, antialiased=False)
                 hub, = self.ax.plot([], [], [], marker='o', color='blue', markersize=8, antialiased=False)
                 back_bar1, = self.ax.plot([], [], [], color='black', linewidth=4, antialiased=False)
                 back_bar2, = self.ax.plot([], [], [], color='black', linewidth=4, antialiased=False)
-                self.quadGui.append({'pos': pos, 'hub': hub, 'bar_frontLeft': front_bar1, 'bar_frontRight': front_bar2,
-                                     'bar_rearLeft': back_bar1, 'bar_rearRight': back_bar2, 'label': label,
-                                     'target_point': target_point})
+                head_x, = self.ax.plot([], [], [], marker='o', color='green', markersize=6, antialiased=False)
+                self.quadGui.append(
+                    {'pos': pos, 'attu': attu, 'hub': hub, 'bar_frontLeft': front_bar1, 'bar_frontRight': front_bar2,
+                     'bar_rearLeft': back_bar1, 'bar_rearRight': back_bar2, 'label': label,
+                     'target_point': target_point, 'head_x': head_x})
 
     def draw_surface(self):
         x = np.arange(-5, 5, 1)
@@ -161,9 +168,14 @@ class QuadrotorFlyGuiUav(object):
             quad_gui = self.quadGui[ii]
             uav_l = quad.uavPara.uavL
             position = quad.position
+            attitude = quad.attitude
             # chang pos_inf
-            quad_gui['pos'].set_text('pos_%d/m:' % ii + str('[%f6, %f6, %f6]'
+            quad_gui['pos'].set_text('pos_%d/m:' % ii + str('[%.6f, %.6f, %.6f]'
                                                             % (position[0], position[1], position[2])))
+            quad_gui['attu'].set_text(('attu_%d/dgree:' % ii + str('[%.6f, %.6f, %.6f]'
+                                                                   % (
+                                                                   attitude[0] / np.pi * 180, attitude[1] / np.pi * 180,
+                                                                   attitude[2] / np.pi * 180))))
             # draw target_point
             quad_gui['target_point'].set_data(self.target[0], self.target[1])
             quad_gui['target_point'].set_3d_properties(self.target[2])
@@ -183,8 +195,11 @@ class QuadrotorFlyGuiUav(object):
                 points_rotation[0, :] += position[0]
                 points_rotation[1, :] += position[1]
                 points_rotation[2, :] += position[2]
+                print(points_rotation[0, 0:2], points_rotation[1, 0:2], points_rotation[2, 0:2])
                 quad_gui['barX'].set_data(points_rotation[0, 0:2], points_rotation[1, 0:2])
                 quad_gui['barX'].set_3d_properties(points_rotation[2, 0:2])
+                quad_gui['head_x'].set_data(points_rotation[0, 2], points_rotation[1, 2])
+                quad_gui['head_x'].set_3d_properties(points_rotation[2, 2])
                 quad_gui['barY'].set_data(points_rotation[0, 2:4], points_rotation[1, 2:4])
                 quad_gui['barY'].set_3d_properties(points_rotation[2, 2:4])
                 quad_gui['hub'].set_data(points_rotation[0, 4], points_rotation[1, 4])
@@ -205,6 +220,8 @@ class QuadrotorFlyGuiUav(object):
                 points_rotation[2, :] += position[2]
                 quad_gui['bar_frontLeft'].set_data(points_rotation[0, 0:2], points_rotation[1, 0:2])
                 quad_gui['bar_frontLeft'].set_3d_properties(points_rotation[2, 0:2])
+                quad_gui['head_x'].set_data(points_rotation[0, 2], points_rotation[1, 2])
+                quad_gui['head_x'].set_3d_properties(points_rotation[2, 2])
                 quad_gui['bar_frontRight'].set_data(points_rotation[0, 2:4], points_rotation[1, 2:4])
                 quad_gui['bar_frontRight'].set_3d_properties(points_rotation[2, 2:4])
                 quad_gui['bar_rearLeft'].set_data(points_rotation[0, 4:6], points_rotation[1, 4:6])
@@ -247,9 +264,9 @@ if __name__ == '__main__':
     if testFlag == 1:
         # import matplotlib as mpl
         print("PID  controller test: ")
-        uavPara = Qfm.QuadParas(structure_type=Qfm.StructureType.quad_plus)
+        uavPara = Qfm.QuadParas(structure_type=Qfm.StructureType.quad_x)
         simPara = Qfm.QuadSimOpt(init_mode=Qfm.SimInitType.fixed,
-                                 init_att=np.array([1., 6., 0]), init_pos=np.array([0, 0, 6]))
+                                 init_att=np.array([0, 0, 0]), init_pos=np.array([0, 0, 6]))
         quad1 = Qfm.QuadModel(uavPara, simPara)
         record = MemoryStore.DataRecord()
         record.clear()
@@ -266,13 +283,19 @@ if __name__ == '__main__':
         pos_z = []
         pos = []
         ref = np.array([0., 0., 0., 0.])
-        for i in range(3000):
-            if i == 500:
-                ref = np.array([0., 0., 2., 0.])
-            if i == 1000:
-                ref = np.array([0., 2., 2., 0.])
+        err_pos_i = np.array([0, 0, 0])
+        for i in range(9000):
+            if i == 2000:
+                ref = np.array([0., 0., 0., 0])
+            if i == 4000:
+                ref = np.array([0., 2., 2., 0])
+            if i == 6000:
+                ref = np.array([4., 2., 5., 0.])
+            # if i == 8000:
+            #     ref = np.array([2., 0., 2., 0.])
             stateTemp = quad1.observe()
-            action2, oil = quad1.get_controller_pid(stateTemp, ref)
+            err_pos_i = err_pos_i + (ref[0:3] - stateTemp[0:3]) * 0.01
+            action2, oil = quad1.get_controller_pid(stateTemp, err_pos_i, ref)
             action2 = np.clip(action2, 0.1, 0.9)
             quad1.step(action2)
             pos_x.append(stateTemp[0])
@@ -287,7 +310,6 @@ if __name__ == '__main__':
                 gui.quadGui.target = ref[0:3]
                 gui.quadGui.sim_time = quad1.ts
                 gui.render()
-                print(gui.quadGui.ax.elev, gui.quadGui.ax.azim, '相机视角')
             record.buffer_append((stateTemp, action2))
             step_cnt = stateTemp + 1
 
