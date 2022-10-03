@@ -54,9 +54,9 @@ D2R = Qfm.D2R
 # 仿真参数设置
 simPara = Qfm.QuadSimOpt(
     # 初值重置方式（随机或者固定）；姿态初值参数（随机就是上限，固定就是设定值）；位置初值参数（同上）
-    init_mode=Qfm.SimInitType.fixed, init_att=np.array([5., 5., 5.]), init_pos=np.array([5., 5., 5.]),
+    init_mode=Qfm.SimInitType.fixed, init_att=np.array([0., 0., 0.]), init_pos=np.array([0., 0., 5.]),
     # 仿真运行的最大位置，最大速度，最大姿态角（角度，不是弧度注意），最大角速度（角度每秒）
-    max_position=15, max_velocity=15, max_attitude=180, max_angular=200,
+    max_position=15, max_velocity=15, max_attitude=360, max_angular=200,
     # 系统噪声，分别在位置环和速度环
     sysnoise_bound_pos=0.01, sysnoise_bound_att=0.01,
     # 执行器模式，简单模式没有电机动力学，
@@ -89,7 +89,7 @@ record.clear()
 
 # 仿真过程
 print("Simplest simulation begin!")
-for i in range(3000):
+for i in range(8000):
     # 模型更新
     # 设置目标
     ref = np.array([0., 0., 0., 0.])
@@ -107,7 +107,8 @@ for i in range(3000):
     record.buffer_append((stateTemp, action2))
 
     # 渲染GUI
-    gui.render()
+    if i % 100 == 0:
+        gui.render()
 
 record.episode_append()
 # 输出结果

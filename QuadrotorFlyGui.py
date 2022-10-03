@@ -237,7 +237,7 @@ class QuadrotorFlyGuiUav(object):
         # elif self.ax.elev < 0 and position[2] > 0:
         #     print('22', position)
         #     self.draw_grid()
-        figure = self.ax.plot(pos[0], pos[1], pos[2], c='r')
+        # figure = self.ax.plot(pos[0], pos[1], pos[2], c='r')
 
 
 class QuadrotorFlyGui(object):
@@ -285,12 +285,12 @@ if __name__ == '__main__':
         ref = np.array([0., 0., 0., 0.])
         err_pos_i = np.array([0, 0, 0])
         for i in range(9000):
-            if i == 2000:
-                ref = np.array([0., 0., 0., 0])
-            if i == 4000:
-                ref = np.array([0., 2., 2., 0])
-            if i == 6000:
-                ref = np.array([4., 2., 5., 0.])
+            # if i == 2000:
+            #     ref = np.array([0., 0., 0., 0])
+            # if i == 4000:
+            #     ref = np.array([0., 2., 2., 0])
+            # if i == 6000:
+            #     ref = np.array([4., 2., 5., 0.])
             # if i == 8000:
             #     ref = np.array([2., 0., 2., 0.])
             stateTemp = quad1.observe()
