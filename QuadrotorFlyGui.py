@@ -282,9 +282,9 @@ if __name__ == '__main__':
         pos_y = []
         pos_z = []
         pos = []
-        ref = np.array([0., 0., 0., 0.])
+        ref = np.array([8., 10., -10., 0.])
         err_pos_i = np.array([0, 0, 0])
-        for i in range(9000):
+        for i in range(1000):
             # if i == 2000:
             #     ref = np.array([0., 0., 0., 0])
             # if i == 4000:
@@ -295,8 +295,8 @@ if __name__ == '__main__':
             #     ref = np.array([2., 0., 2., 0.])
             stateTemp = quad1.observe()
             err_pos_i = err_pos_i + (ref[0:3] - stateTemp[0:3]) * 0.01
-            action2, oil = quad1.get_controller_pid(stateTemp, err_pos_i, ref)
-            action2 = np.clip(action2, 0.1, 0.9)
+            action2 = quad1.controller_pid(stateTemp, ref)
+            # action2 = np.clip(action2, 0.1, 0.9)
             quad1.step(action2)
             pos_x.append(stateTemp[0])
             pos_y.append(stateTemp[1])

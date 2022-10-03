@@ -534,7 +534,7 @@ class QuadModel(object):
         # position-velocity cycle, velocity cycle is regard as kd
         ki_pos = np.array([0.0, 0.0, 0.0])
         kp_pos = np.array([0.43, 0.43, 0.6])
-        kp_vel = np.array([1.02, 1.02, 1.4])
+        kp_vel = np.array([1.01, 1.01, 1.4])
 
         # calculate a_pos
         err_pos = ref_state[0:3] - state[0:3]
