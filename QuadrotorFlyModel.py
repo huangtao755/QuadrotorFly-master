@@ -533,8 +533,8 @@ class QuadModel(object):
 
         # position-velocity cycle, velocity cycle is regard as kd
         ki_pos = np.array([0.0, 0.0, 0.0])
-        kp_pos = np.array([0.6, 0.5, 0.7])
-        kp_vel = np.array([1.3, 1.3, 1.7])
+        kp_pos = np.array([0.43, 0.43, 0.6])
+        kp_vel = np.array([1.02, 1.02, 1.4])
 
         # calculate a_pos
         err_pos = ref_state[0:3] - state[0:3]
@@ -544,8 +544,8 @@ class QuadModel(object):
         u1 = self.uavPara.uavM * np.sqrt(sum(np.square(a_pos)))
 
         # attitude-angular cycle, angular cycle is regard as kd
-        kp_angle = np.array([17, 17, 17])
-        kp_angular = np.array([7.6, 7.6, 7.6])
+        kp_angle = np.array([15.5, 15.5, 15])
+        kp_angular = np.array([7.7, 7.7, 7])
 
         # calculate a_angle
         phi = state[6]
