@@ -264,9 +264,9 @@ if __name__ == '__main__':
     if testFlag == 1:
         # import matplotlib as mpl
         print("PID  controller test: ")
-        uavPara = Qfm.QuadParas(structure_type=Qfm.StructureType.quad_x)
+        uavPara = Qfm.QuadParas(structure_type=Qfm.StructureType.quad_plus)
         simPara = Qfm.QuadSimOpt(init_mode=Qfm.SimInitType.fixed,
-                                 init_att=np.array([0, 0, 0]), init_pos=np.array([0, 0, 6]))
+                                 init_att=np.array([0, 0, 0]), init_pos=np.array([0, 0, 0]))
         quad1 = Qfm.QuadModel(uavPara, simPara)
         record = MemoryStore.DataRecord()
         record.clear()
@@ -282,29 +282,22 @@ if __name__ == '__main__':
         pos_y = []
         pos_z = []
         pos = []
-        ref = np.array([0., 0., 0., 0.])
+        ref = np.array([5., 5., 5., 1.])
         err_pos_i = np.array([0, 0, 0])
-        for i in range(9000):
-            # if i == 2000:
-            #     ref = np.array([0., 0., 0., 0])
-            # if i == 4000:
-            #     ref = np.array([0., 2., 2., 0])
-            # if i == 6000:
-            #     ref = np.array([4., 2., 5., 0.])
-            # if i == 8000:
-            #     ref = np.array([2., 0., 2., 0.])
+        for i in range(3000):
+            if i == 1000:
+                ref = np.array([0., 10., 0., 0.])
+            if i == 2000:
+                ref = np.array([10., 0., 0., -1])
             stateTemp = quad1.observe()
             err_pos_i = err_pos_i + (ref[0:3] - stateTemp[0:3]) * 0.01
-            action2, oil = quad1.get_controller_pid(stateTemp, err_pos_i, ref)
-            action2 = np.clip(action2, 0.1, 0.9)
+            action2 = quad1.controller_pid(stateTemp, ref_state=ref)
+            print(action2, 'action')
             quad1.step(action2)
             pos_x.append(stateTemp[0])
             pos_y.append(stateTemp[1])
             pos_z.append(stateTemp[2])
             pos = [pos_x, pos_y, pos_z]
-            # multi uav test
-            # action2, oil2 = quad2.get_controller_pid(quad2.observe(), ref)
-            # quad2.step(action2)
 
             if i % 10 == 0:
                 gui.quadGui.target = ref[0:3]

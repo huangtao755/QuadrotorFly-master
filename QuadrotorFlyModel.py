@@ -344,7 +344,7 @@ class QuadModel(object):
         dot_state = np.zeros([12])
         # dynamic of position cycle
         dot_state[0:3] = state[3:6]
-        # we need not to calculate the whole rotation matrix because just care last column
+        # ########### we need not to calculate the whole rotation matrix because just care last column
         dot_state[3:6] = action[0] / self.uavPara.uavM * np.array([
             att_cos[2] * att_sin[1] * att_cos[0] + att_sin[2] * att_sin[0],
             att_sin[2] * att_sin[1] * att_cos[0] - att_cos[2] * att_sin[0],
@@ -458,21 +458,53 @@ class QuadModel(object):
 
         return forces
 
+    # def step(self, action: 'int > 0'):
+    #
+    #     self.__ts += self.uavPara.ts
+    #     # 1.1 Actuator model, calculate the thrust and torque
+    #     thrusts, toques = self.actuator.step(action)
+    #
+    #     # 1.2 Calculate the force distribute according to 'x' type or '+' type, assum '+' type
+    #     forces = self.rotor_distribute_dynamic(thrusts, toques)
+    #
+    #     # 1.3 Basic model, calculate the basic model, the u need to be given directly in test-mode for Matlab
+    #     state_temp = np.hstack([self.position, self.velocity, self.attitude, self.angular])
+    #     state_next = rk4(self.dynamic_basic, state_temp, forces, self.uavPara.ts)
+    #     [self.position, self.velocity, self.attitude, self.angular] = np.split(state_next, 4)
+    #     # calculate the accelerate
+    #     state_dot = self.dynamic_basic(state_temp, forces)
+    #     self.acc = state_dot[3:6]
+    #
+    #     # 2. Calculate Sensor sensor model
+    #     if self.simPara.enableSensorSys:
+    #         for index, sensor in enumerate(self.sensorList):
+    #             if isinstance(sensor, SensorBase.SensorBase):
+    #                 sensor.update(np.hstack([state_next, self.acc]), self.__ts)
+    #     ob = self.observe()
+    #
+    #     # 3. Check whether finish (failed or completed)
+    #     finish_flag = self.is_finished()
+    #
+    #     # 4. Calculate a reference reward
+    #     reward = self.get_reward()
+    #
+    #     return ob, reward, finish_flag
+    #
     def step(self, action: 'int > 0'):
 
         self.__ts += self.uavPara.ts
         # 1.1 Actuator model, calculate the thrust and torque
-        thrusts, toques = self.actuator.step(action)
+        # thrusts, toques = self.actuator.step(action)
 
         # 1.2 Calculate the force distribute according to 'x' type or '+' type, assum '+' type
-        forces = self.rotor_distribute_dynamic(thrusts, toques)
+        # forces = self.rotor_distribute_dynamic(thrusts, toques)
 
         # 1.3 Basic model, calculate the basic model, the u need to be given directly in test-mode for Matlab
         state_temp = np.hstack([self.position, self.velocity, self.attitude, self.angular])
-        state_next = rk4(self.dynamic_basic, state_temp, forces, self.uavPara.ts)
+        state_next = rk4(self.dynamic_basic, state_temp, action, self.uavPara.ts)
         [self.position, self.velocity, self.attitude, self.angular] = np.split(state_next, 4)
         # calculate the accelerate
-        state_dot = self.dynamic_basic(state_temp, forces)
+        state_dot = self.dynamic_basic(state_temp, action)
         self.acc = state_dot[3:6]
 
         # 2. Calculate Sensor sensor model
@@ -490,6 +522,57 @@ class QuadModel(object):
 
         return ob, reward, finish_flag
 
+    def controller_pid(self, state, ref_state=np.array([0, 0, 0, 0])):
+        """
+
+        :param state:
+        :param ref_state:
+        :return:
+        """
+        action_motor = np.zeros(4)
+
+        # position-velocity cycle, velocity cycle is regard as kd
+        ki_pos = np.array([0.0, 0.0, 0.0])
+        kp_pos = np.array([0.6, 0.5, 0.7])
+        kp_vel = np.array([1.3, 1.3, 1.7])
+
+        # calculate a_pos
+        err_pos = ref_state[0:3] - state[0:3]
+        err_vel = - state[3:6]
+        a_pos = kp_pos * err_pos + kp_vel * err_vel
+        a_pos[2] = a_pos[2] + self.uavPara.g
+        u1 = self.uavPara.uavM * np.sqrt(sum(np.square(a_pos)))
+
+        # attitude-angular cycle, angular cycle is regard as kd
+        kp_angle = np.array([17, 17, 17])
+        kp_angular = np.array([7.6, 7.6, 7.6])
+
+        # calculate a_angle
+        phi = state[6]
+        theta = state[7]
+        phy = state[8]
+        phy_ref = ref_state[3]
+        phi_ref = np.arcsin(self.uavPara.uavM * (a_pos[0] * np.sin(phy) - a_pos[1] * np.cos(phy)) / u1)
+        theta_ref = np.arcsin(
+            self.uavPara.uavM * (a_pos[0] * np.cos(phy) + a_pos[1] * np.sin(phy)) / (u1 * np.cos(theta)))
+        angle = np.array([phi, theta, phy])
+        # print(angle, 'angle')
+        angle_ref = np.array((phi_ref, theta_ref, phy_ref))
+        angle_err = angle_ref - angle
+        angle_vel_err = -state[9:12]
+        a_angle = kp_angle * angle_err + kp_angular * angle_vel_err
+        u2 = a_angle[0] * self.uavPara.uavInertia[0]
+        u3 = a_angle[1] * self.uavPara.uavInertia[1]
+        u4 = a_angle[2] * self.uavPara.uavInertia[2]
+        action = np.array([u1, u2, u3, u4])
+
+        if self.uavPara.structureType == StructureType.quad_plus:
+            pass
+        elif self.uavPara.structureType == StructureType.quad_x:
+            pass
+
+        return action
+
     def get_controller_pid(self, state, err_pos_i=np.array([0, 0, 0]),
                            ref_state=np.array([0, 0, 1, 0])):
         """ pid controller
@@ -500,8 +583,9 @@ class QuadModel(object):
 
         # position-velocity cycle, velocity cycle is regard as kd
         ki_pos = np.array([0.0, 0.0, 0.0])
-        kp_pos = np.array([0.3, 0.3, 0.8])
+        kp_pos = np.array([1, 1, 1])
         kp_vel = np.array([0.15, 0.15, 0.5])
+
         # decoupling about x-y
         phy = state[8]
         # de_phy = np.array([[np.sin(phy), -np.cos(phy)], [np.cos(phy), np.sin(phy)]])
@@ -509,7 +593,9 @@ class QuadModel(object):
         de_phy = np.array([[np.cos(phy), -np.sin(phy)], [np.sin(phy), np.cos(phy)]])
         err_pos = ref_state[0:3] - np.array([state[0], state[1], state[2]])
         ref_vel = err_pos * kp_pos  # + err_pos_i * ki_pos
+
         err_vel = ref_vel - np.array([state[3], state[4], state[5]])
+
         # calculate ref without decoupling about phy
         # ref_angle = kp_vel * err_vel
         # calculate ref with decoupling about phy
@@ -517,8 +603,8 @@ class QuadModel(object):
         ref_angle[0:2] = np.matmul(de_phy, kp_vel[0] * err_vel[0:2])
 
         # attitude-angular cycle, angular cycle is regard as kd
-        kp_angle = np.array([1, 1, 0.8])
-        kp_angular = np.array([0.2, 0.2, 0.2])
+        kp_angle = np.array([50, 50, 40])
+        kp_angular = np.array([0.1, 0.1, 0.1])
         # ref_angle = np.zeros(3)
         err_angle = np.array([-ref_angle[1], ref_angle[0], ref_state[3]]) - np.array([state[6], state[7], state[8]])
         ref_rate = err_angle * kp_angle
@@ -527,8 +613,8 @@ class QuadModel(object):
 
         # the control value in z direction needs to be modify considering gravity
         err_altitude = (ref_state[2] - state[2]) * 0.5
-        con_altitude = (err_altitude - state[5]) * 0.25
-        print(con_altitude)
+        con_altitude = (err_altitude - state[5]) * 0.1
+        # print(con_altitude)
         oil_altitude = 0.634195 + con_altitude
         # oil_altitude = 0.6 + con_altitude
         if oil_altitude > 0.75:
